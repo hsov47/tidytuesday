@@ -1,0 +1,34 @@
+---
+title: "3-5-24 Trashwheel"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(praise)
+library(ggstream)
+```
+
+
+```{r}
+trash_long <- trashwheel |>
+  pivot_longer(cols = PlasticBottles:SportsBalls, names_to = "type", values_to = "count") |>
+  mutate(date_obj = lubridate::mdy(Date)) |>
+  mutate(date_obj = as.numeric(ym(format_ISO8601(date_obj, precision = "ym")))) |>
+  group_by(Name, date_obj, type) |>
+  summarize(bigcount = sum(count)) |>
+  ungroup() |>
+  drop_na()
+```
+
+```{r}
+ggplot(trash_long, aes(date_obj, bigcount, fill = type, color = type, group = type)) +
+  geom_stream() +
+  facet_wrap(~Name)
+
+```
+
+
+```{r}
+praise()
+```
