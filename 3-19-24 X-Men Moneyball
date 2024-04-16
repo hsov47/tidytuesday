@@ -1,0 +1,49 @@
+---
+title: "TidyTuesday 3-19-24 X-Men Moneyball"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+mutant_moneyball <-
+readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-03-19/mutant_moneyball.csv') |>
+  mutate(across(`60s_Appearance_Percent`:PPI90s_oStreet, parse_number))
+```
+
+```{r}
+mutant_moneyball |>
+  ggplot(aes(x = PPI60s_wiz, y = PPI60s_ebay)) + 
+  geom_point(aes(size = TotalIssues60s)) +
+  geom_abline(intercept = 0, slope = 1) +
+  ggrepel::geom_label_repel(aes(label = Member)) 
+```
+
+```{r}
+longer<-mutant_moneyball |>
+  select(-TotalIssues, -totalIssueCheck, -TotalValue_heritage, -TotalValue_ebay) |>
+  pivot_longer(cols=-1, 
+                     names_pattern = "(.*\\d\\ds)(.*)", 
+                     names_to = c("limit", "name")) |>
+
+  mutate(decade = str_extract(limit,"\\d\\ds"), 
+         name1 = str_extract(limit, "[A-Za-z]+")) |>
+  
+  mutate(variable = paste(name1, name, sep = "")) |>
+  select(Member, decade, value, variable) |>
+  pivot_wider(names_from = variable, values_from = value)     
+```
+
+```{r}
+longer |>
+  #ggplot(aes(x = PPI60s_wiz, y = PPI60s_ebay)) + 
+  ggplot(aes(x = PPI_ebay, y = PPI_wiz)) +
+  geom_point(aes(size = TotalIssues, color = Member)) +
+  geom_abline(intercept = 0, slope = 1) +
+  #ggrepel::geom_label_repel(aes(label = Member)) +
+  facet_wrap(~decade, scales = "free") +
+  theme(legend.position = "none")
+```
