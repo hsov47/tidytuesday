@@ -1,0 +1,73 @@
+---
+title: "3-26-24 March Madness"
+format: html
+---
+
+# The Data
+```{r}
+#| warning: false
+#| message: false
+
+library(tidyverse)
+
+team_results <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-03-26/team-results.csv')
+public_picks <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-03-26/public-picks.csv')
+```
+
+
+# The Plots
+
+Plotting komputer ranking vs actual seeding of college teams
+```{r}
+seed_data <- team_results |>
+  mutate(expectations = ifelse(PAKE >= PASE, "underseeded", "overseeded")) |>
+  mutate(rank_diff = (PAKE-PASE)) |>
+  #filter(abs(PAKE-PASE) > 1) |>
+  
+  mutate(expected_grps = case_when(
+    PAKE-PASE < -2 ~ "way_under",
+    PAKE-PASE < -1 ~ "little_under",
+    PAKE-PASE < 0 ~ "under",
+    PAKE-PASE < 1 ~ "over",
+    PAKE-PASE < 2 ~ "little _over",
+    TRUE ~ "way_over")) |>
+  mutate(expected_grps = factor( expected_grps, 
+                                 levels = c("way_under", "little_under", "under", 
+                                            "over", "little _over", "way_over")))
+
+seed_data |>
+  ggplot(aes(x = PAKE, y = PASE, color = expected_grps)) +
+  geom_point(aes(color = expected_grps)) +
+  geom_abline(slope = 1, intercept = 0) +
+  labs(x = "Komputer ranking", y = "Seed ranking") +
+  scale_color_manual(values = c("red", "orange", "yellow", "lightblue", "blue", "purple")) +
+  ggrepel:: geom_label_repel(data = filter(seed_data, abs(PAKE-PASE) > 1.5), mapping = aes(label = TEAM)) 
+
+
+```
+
+
+Spider plot of several colleges and their data
+```{r}
+library(ggradar)
+
+#| warning: false
+#| message: false
+
+
+#team_results |>
+  #filter(TEAM %in% c("Florida", "Oregon", "Houston", "Butler", "Saint Peter's", 
+                     #"Kansas", "Detroit", "UCLA")) |>
+  #select(TEAM, PAKE, PASE, GAMES, W, R64) |>
+  #mutate(across(PAKE:R64, scale)) |>
+  
+team_results |>
+  mutate(F4PERCENT = parse_number(F4PERCENT)) |>
+  select(TEAM, PAKE, PASE, GAMES, W, R64, F4PERCENT) |>
+  mutate(across(PAKE:F4PERCENT, scale)) |>
+  filter(TEAM %in% c("Houston", "Butler", 
+                     "Kansas", "Florida Atlantic", "Purdue")) |>
+  ggradar(values.radar = c("-2", "0", "4"),
+                          grid.min = -2, grid.mid = 0, grid.max = 4, 
+          group.line.width = 1, group.point.size = 3)
+```
