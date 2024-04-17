@@ -1,0 +1,74 @@
+---
+title: "4-16-24 Shiny"
+format: html
+server: shiny
+---
+
+## Shiny Documents
+
+This Quarto document is made interactive using Shiny. Interactive documents allow readers to modify parameters and see the results immediately. Learn more about Shiny interactive documents at <https://quarto.org/docs/interactive/shiny/>.
+
+```{r}
+#| warning: false
+#| message: false
+library(tidyverse)
+library(praise)
+```
+
+# The Data
+
+Using previous data from 9/1/20
+
+```{r}
+#| warning: false
+#| message: false
+key_crop_yields <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/key_crop_yields.csv')
+fertilizer <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/cereal_crop_yield_vs_fertilizer_application.csv')
+tractors <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/cereal_yields_vs_tractor_inputs_in_agriculture.csv')
+land_use <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/land_use_vs_yield_change_in_cereal_production.csv')
+arable_land <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/arable_land_pin.csv')
+```
+
+## Crop Yields
+
+```{r}
+#| warning: false
+#| message: false
+key_crop_yields |>
+  filter(Code %in% c("AFG", "ESP", "GTM", "NZL", "KHM")) |>
+  ggplot(aes(x = Year, y = `Wheat (tonnes per hectare)`, color = Code)) +
+  geom_line()
+```
+
+# Shiny Crop Yields
+```{r}
+sliderInput("year_range", "Year Range:", 
+            min = 1961, max = 2010, value = c(1980, 2010),
+            sep = "")
+selectizeInput("var", "Crop:", 
+             choices = names(select(key_crop_yields, `Wheat (tonnes per hectare)`:`Bananas (tonnes per hectare)`)), 
+             multiple = FALSE)
+selectizeInput("country", "Countries:", 
+                  choices = unique(key_crop_yields$Entity), 
+                  selected = c("Mexico", "Spain"), multiple = TRUE)
+plotOutput("cropPlot")
+```
+
+```{r}
+#| context: server
+
+library(tidyverse)
+key_crop_yields <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-01/key_crop_yields.csv')
+
+output$cropPlot <- renderPlot({
+  key_crop_yields |>
+  #filter(Code %in% c("AFG", "ESP", "GTM", "NZL", "KHM")) |>
+  filter(Year >= input$year_range[1] & Year <= input$year_range[2]) |>
+  filter(Entity %in% input$country) |>
+  ggplot(aes(x = Year, y = get(input$var), color = Entity)) + 
+    geom_line() 
+  
+})
+```
+
+
